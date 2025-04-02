@@ -35,7 +35,7 @@
 ## 📦 การติดตั้งและใช้งาน
 ```bash
 # Clone โปรเจกต์
-git clone https://github.com/your-repo/project-name.git
+git clone https://github.com/Chatra-Danai/ICT-Mahidol-672-ITDS283-Group8-MU-Health-Friends-Service.git
 
 # เข้าไปในโฟลเดอร์โปรเจกต์
 cd project-name
