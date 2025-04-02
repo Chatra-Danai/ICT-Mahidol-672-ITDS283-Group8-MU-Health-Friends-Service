@@ -1,11 +1,3 @@
-<<<<<<< HEAD
-<<<<<<< HEAD
-# flutter_application_1
-
-A new Flutter project.
-=======
-=======
->>>>>>> b46d5b1fcd857cecd262829fd612fd60903cdf28
 # 📱 ICT-Mahidol-672-ITDS283-Group8-MU-Health-Friends-Service
 
 **คำอธิบายโครงการ:**  
