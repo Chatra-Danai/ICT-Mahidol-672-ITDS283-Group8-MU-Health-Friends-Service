@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "1052842009622",
+    "project_id": "itds283-project-emm",
+    "storage_bucket": "itds283-project-emm.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1052842009622:android:feb6319fd16b4ae37b8137",
+        "android_client_info": {
+          "package_name": "com.example.project_phase2"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDkjE4rUX8oGfXExDuPKz8kPSa9rqdcgWE"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

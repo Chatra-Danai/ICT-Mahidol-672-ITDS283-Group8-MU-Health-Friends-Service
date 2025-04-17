@@ -1,0 +1,2 @@
+/Users/jao.pichitchai/Desktop/TestProject/android/app/.cxx/Debug/5g47j1l5/x86/CMakeFiles/edit_cache.dir
+/Users/jao.pichitchai/Desktop/TestProject/android/app/.cxx/Debug/5g47j1l5/x86/CMakeFiles/rebuild_cache.dir
