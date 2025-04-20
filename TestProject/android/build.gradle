@@ -1,7 +1,18 @@
-allprojects {
+buildscript {
+    // Make sure you have repositories defined here (google() and mavenCentral() are common)
     repositories {
         google()
         mavenCentral()
+    }
+
+    dependencies {
+        // ** This is the correct place for the classpath line **
+        // classpath 'com.android.tools.build:gradle:7.4.0'
+
+        classpath 'com.android.tools.build:gradle:8.4.0'
+
+        // You might have other classpath dependencies here too, like the Kotlin plugin
+        // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
@@ -9,9 +20,9 @@ rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
 }
-subprojects {
-    project.evaluationDependsOn(":app")
-}
+// subprojects {
+//     project.evaluationDependsOn(":app")
+// }
 
 tasks.register("clean", Delete) {
     delete rootProject.buildDir

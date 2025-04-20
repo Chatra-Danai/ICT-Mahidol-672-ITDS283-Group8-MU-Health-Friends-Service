@@ -3,6 +3,8 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:intl/intl.dart';
 
+import 'active_service_screen.dart'; // Import the new screen
+
 class StaffQueueScreen extends StatefulWidget {
   const StaffQueueScreen({super.key});
 
@@ -45,19 +47,14 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
   Future<void> _assignToTable(int tableNumber) async {
     if (_selectedQueueDocId == null || _selectedUserId == null || _currentUser == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Please select a user from the queue first.'), 
-        backgroundColor: Colors.orange,
-        ),
+          const SnackBar(content: Text('Please select a user from the queue first.'), backgroundColor: Colors.orange),
       );
       return;
     }
     
     if (tableNumber == 3 && _selectedServiceTypeRequested != 'Doctor Visit') {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Table 3 is reserved for Doctor Visits only.'), 
-          backgroundColor: Colors.orange,
-        ),
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Table 3 is reserved for Doctor Visits only.'), backgroundColor: Colors.orange),
       );
       return;
     }
@@ -66,12 +63,31 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
 
     setState(() => _isProcessingAction = true);
 
+    // Store needed variables before clearing selection state
     final String queueDocId = _selectedQueueDocId!;
     final String targetUserId = _selectedUserId!;
     final String staffId = _currentUser!.uid;
     final String staffEmail = _currentUser!.email ?? 'Unknown Staff';
+    final String? selectedUserName = _selectedUserName;
+    final String serviceTypeForCall = _selectedServiceTypeRequested ?? 'Service';
 
+    // Store selected data before clearing state for navigation
+    final String? currentSelectedQueueDocId = _selectedQueueDocId;
+    final String? currentSelectedUserId = _selectedUserId;
+    final String? currentSelectedUserName = _selectedUserName;
+    final String? currentSelectedServiceType = _selectedServiceTypeRequested;
+
+    // Clear selection in UI immediately after starting action
+    setState(() {
+        _selectedQueueDocId = null;
+        _selectedUserId = null;
+        _selectedUserName = null;
+        _selectedServiceTypeRequested = null;
+    });
+
+    bool updateAndNotifySuccess = false;
     try {
+      // 1. Update the queue document status and assign table
       await FirebaseFirestore.instance.collection('serviceQueue').doc(queueDocId).update({
         'status': 'called',
         'calledAt': FieldValue.serverTimestamp(),
@@ -79,35 +95,43 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
         'assignedTable': tableNumber,
       });
 
+      // 2. Send notification to the user with table number
       await _sendNotificationToUser(
-        targetUserId: targetUserId,
-        title: "Your Turn!",
-        body: "Please proceed to Table $tableNumber for your service.",
-        staffName: staffEmail,
+          targetUserId: targetUserId,
+          title: "Your Turn!",
+          body: "Please proceed to Table $tableNumber for your service.",
+          staffName: staffEmail
       );
 
-      debugPrint("Assigned user $targetUserId to Table $tableNumber.");
-
-      setState(() {
-        _selectedQueueDocId = null;
-        _selectedUserId = null;
-        _selectedUserName = null;
-        _selectedServiceTypeRequested = null;
-      });
+      debugPrint("Called user $targetUserId to Table $tableNumber.");
+      updateAndNotifySuccess = true;
 
     } catch (e) {
-      debugPrint("Error assigning to table: $e");
-      if(mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Error assigning to table: $e'), 
-          backgroundColor: Colors.red,
-          ),
-        );
-      }
+      debugPrint("Error calling user or sending notification: $e");
+        if(mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Error calling user: $e'), backgroundColor: Colors.red),
+            );
+        }
     } finally {
-      if(mounted) {
-        setState(() => _isProcessingAction = false);
+      if(mounted && _isProcessingAction) {
+          setState(() => _isProcessingAction = false);
       }
+    }
+
+    // 3. Navigate to Active Service Screen IF update/notify was successful
+    if (updateAndNotifySuccess && mounted) {
+        Navigator.of(context).push(MaterialPageRoute(
+          builder: (_) => ActiveServiceScreen(
+                userId: currentSelectedUserId!,
+                userName: currentSelectedUserName ?? 'Unknown User',
+                queueDocId: currentSelectedQueueDocId!,
+                tableNumber: tableNumber,
+                serviceTypeCalled: currentSelectedServiceType ?? 'Service',
+          ),
+        ));
+    } else if (mounted) {
+        debugPrint("Did not navigate due to update/notify failure.");
     }
   }
 
@@ -193,6 +217,27 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
                     final serviceTypeReq = data['serviceTypeRequested'] as String? ?? 'Unknown';
                     final isSelected = doc.id == _selectedQueueDocId;
 
+                    // --- Read Symptom Data ---
+                    final description = data['description'] as String?;
+                    final painPointsList = data['painPoints'] as List<dynamic>?;
+                    final woundImageUrl = data['woundImageUrl'] as String?;
+
+                    // --- Build Subtitle String ---
+                    List<String> subtitleParts = [];
+                    subtitleParts.add('Requested: $serviceTypeReq at ${_formatTimestamp(requestedAt)}');
+
+                    if (description != null && description.isNotEmpty) {
+                      subtitleParts.add('Desc: ${description.length > 20 ? '${description.substring(0, 20)}...' : description}');
+                    }
+                    if (painPointsList != null && painPointsList.isNotEmpty) {
+                      subtitleParts.add('${painPointsList.length} pain point(s)');
+                    }
+                    if (woundImageUrl != null) {
+                      subtitleParts.add('Photo attached');
+                    }
+
+                    final subtitleText = subtitleParts.join(' • ');
+
                     return Card(
                       color: isSelected ? Colors.blue.shade100 : null,
                       margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -207,7 +252,22 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
                               : null,
                         ),
                         title: Text(userName, style: const TextStyle(fontWeight: FontWeight.bold)),
-                        subtitle: Text('Requested: $serviceTypeReq at ${requestedAt != null ? DateFormat('HH:mm:ss').format(requestedAt.toDate()) : 'N/A'}'),
+                        subtitle: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(subtitleText),
+                            if (isSelected && description != null && description.isNotEmpty && description.length > 20)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 4.0),
+                                child: Text(
+                                  'Full description: $description',
+                                  style: const TextStyle(fontSize: 12),
+                                  maxLines: 2,
+                                  overflow: TextOverflow.ellipsis,
+                                ),
+                              ),
+                          ],
+                        ),
                         onTap: () {
                           setState(() {
                             if (isSelected) {
@@ -281,5 +341,10 @@ class _StaffQueueScreenState extends State<StaffQueueScreen> {
         ],
       ),
     );
+  }
+
+  String _formatTimestamp(Timestamp? timestamp) {
+    if (timestamp == null) return 'N/A';
+    return DateFormat('HH:mm:ss').format(timestamp.toDate());
   }
 }

@@ -49,5 +49,7 @@
 	<string>This app needs access to your location to fetch the Air Quality Index for your current area.</string>
 	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 	<string>This app needs access to your location to fetch the Air Quality Index for your current area.</string>
+	<key>NSCameraUsageDescription</key>
+	<string>This app needs camera access to scan service QR codes.</string>
 </dict>
 </plist>
